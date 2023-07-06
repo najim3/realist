@@ -1,5 +1,6 @@
 import * as config from "../config.js";
 import jwt from "jsonwebtoken";
+import { emailTemplate } from "../helpers/email.js";
 
 export const welcome = (req, res) => {
   res.json({
@@ -18,30 +19,15 @@ export const preRegister = async (req, res) => {
     });
 
     config.AWSSES.sendEmail(
-      {
-        Source: config.EMAIL_FROM,
-        Destination: {
-          ToAddresses: ["najim.eng.3@gmail.com"],
-        },
-        Message: {
-          Body: {
-            Html: {
-              Charset: "UTF-8",
-              Data: `
-              <html>
-                <h1>Welcome to Realist App</h1>
-                <p>Please click the link below to activate your account.</p>
-                <a href="${config.CLIENT_URL}/auth/account-activate/${token}">Activate my account</a>
-             </html>
-            `,
-            },
-          },
-          Subject: {
-            Charset: "UTF-8",
-            Data: "Welcome to Realist",
-          },
-        },
-      },
+      emailTemplate(
+        email,
+        `
+       <p>Please click the link below to activate your account.</p>
+       <a href="${config.CLIENT_URL}/auth/account-activate/${token}">Activate my account</a>
+       `,
+        config.REPLY_TO,
+        "Activate your account"
+      ),
       (err, data) => {
         if (err) {
           console.log(err);
