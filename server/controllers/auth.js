@@ -1,4 +1,5 @@
 import * as config from "../config.js";
+import jwt from "jsonwebtoken";
 
 export const welcome = (req, res) => {
   res.json({
@@ -10,7 +11,11 @@ export const preRegister = async (req, res) => {
   // create jwt with email and password then email as clickable link
   // only when user click on that email link, registation completes.
   try {
-    console.log(req.body);
+    //console.log(req.body);
+    const { email, password } = req.body;
+    const token = jwt.sign({ email, password }, config.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     config.AWSSES.sendEmail(
       {
@@ -23,7 +28,11 @@ export const preRegister = async (req, res) => {
             Html: {
               Charset: "UTF-8",
               Data: `
-             <h1>Welcome to Realist App</h1>
+              <html>
+                <h1>Welcome to Realist App</h1>
+                <p>Please click the link below to activate your account.</p>
+                <a href="${config.CLIENT_URL}/auth/account-activate/${token}">Activate my account</a>
+             </html>
             `,
             },
           },
@@ -43,6 +52,15 @@ export const preRegister = async (req, res) => {
         }
       }
     );
+  } catch (error) {
+    console.log(error);
+    return res.json({ error: "Something went wrong. Try again." });
+  }
+};
+
+export const register = async (req, res) => {
+  try {
+    console.log(req.body);
   } catch (error) {
     console.log(error);
     return res.json({ error: "Something went wrong. Try again." });
