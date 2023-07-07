@@ -1,6 +1,9 @@
 import * as config from "../config.js";
 import jwt from "jsonwebtoken";
 import { emailTemplate } from "../helpers/email.js";
+import { hashPassword, comparePassword } from "../helpers/auth.js";
+import User from "../models/user.js";
+import { nanoid } from "nanoid";
 
 export const welcome = (req, res) => {
   res.json({
@@ -21,10 +24,8 @@ export const preRegister = async (req, res) => {
     config.AWSSES.sendEmail(
       emailTemplate(
         email,
-        `
-       <p>Please click the link below to activate your account.</p>
-       <a href="${config.CLIENT_URL}/auth/account-activate/${token}">Activate my account</a>
-       `,
+        `<p>Please click the link below to activate your account.</p>
+       <a href="${config.CLIENT_URL}/auth/account-activate/${token}">Activate my account</a>`,
         config.REPLY_TO,
         "Activate your account"
       ),
@@ -49,6 +50,29 @@ export const register = async (req, res) => {
     //console.log(req.body);
     const { email, password } = jwt.verify(req.body.token, config.JWT_SECRET);
     //console.log(decoded);
+    const hashedPassword = await hashPassword(password);
+
+    const user = await new User({
+      username: nanoid(6),
+      email,
+      password: hashedPassword,
+    }).save();
+
+    const token = jwt.sign({ _id: user._id }, config.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    const refreshToken = jwt.sign({ _id: user._id }, config.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    user.password = undefined;
+    user.resetCode = undefined;
+
+    return res.json({
+      token,
+      refreshToken,
+      user,
+    });
   } catch (error) {
     console.log(error);
     return res.json({ error: "Something went wrong. Try again." });
