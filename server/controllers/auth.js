@@ -4,6 +4,7 @@ import { emailTemplate } from "../helpers/email.js";
 import { hashPassword, comparePassword } from "../helpers/auth.js";
 import User from "../models/user.js";
 import { nanoid } from "nanoid";
+import validator from "email-validator";
 
 export const welcome = (req, res) => {
   res.json({
@@ -17,6 +18,21 @@ export const preRegister = async (req, res) => {
   try {
     //console.log(req.body);
     const { email, password } = req.body;
+    // validation
+    if (!validator.validate(email)) {
+      return res.json({ error: "A valid email is required." });
+    }
+    if (!password) {
+      return res.json({ error: "A password is required." });
+    }
+    if (password && password?.length < 6) {
+      return res.json({ error: "Password should be at least 6 charecters." });
+    }
+
+    const user = await User.findOne({ email });
+    if (user) {
+      return res.json({ error: "Email is taken." });
+    }
     const token = jwt.sign({ email, password }, config.JWT_SECRET, {
       expiresIn: "1h",
     });
